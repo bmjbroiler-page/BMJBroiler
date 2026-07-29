@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
-// Fungsi untuk mengekstrak ID video dari link YouTube
+// Fungsi sakti untuk mengekstrak ID video dari SEMUA jenis link YouTube (Standar, Shorts, Youtu.be, Embed)
 const getYouTubeEmbedUrl = (url) => {
+  if (!url) return '';
   let videoId = '';
-  if (url.includes('youtube.com/watch?v=')) {
+
+  if (url.includes('shorts/')) {
+    videoId = url.split('shorts/')[1].split('?')[0];
+  } else if (url.includes('watch?v=')) {
     videoId = url.split('v=')[1].split('&')[0];
   } else if (url.includes('youtu.be/')) {
     videoId = url.split('youtu.be/')[1].split('?')[0];
-  } else if (url.includes('youtube.com/embed/')) {
-    return url; // Sudah format embed
+  } else if (url.includes('embed/')) {
+    videoId = url.split('embed/')[1].split('?')[0];
   }
+
   return videoId ? `https://www.youtube.com/embed/${videoId}` : '';
 };
 
@@ -44,19 +49,31 @@ export default function VideoSection() {
           <div className="w-16 h-1 bg-blue-600 mx-auto rounded-full"></div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 justify-center items-center">
           {videos.map((vid) => {
             const embedUrl = getYouTubeEmbedUrl(vid.youtube_url);
             if (!embedUrl) return null;
 
+            // Cek orientasi video (portrait/shorts vs landscape)
+            const isPortrait = vid.orientation === 'portrait';
+
             return (
-              <div key={vid.id} className="bg-slate-50 p-2 rounded-2xl border border-slate-200 shadow-sm">
-                <div className="relative w-full overflow-hidden rounded-xl" style={{ paddingTop: '56.25%' /* Rasio 16:9 */ }}>
+              <div key={vid.id} className="bg-slate-50 p-3 rounded-2xl border border-slate-200 shadow-sm max-w-md mx-auto w-full">
+                {/* 
+                  Dinamis Rasio: 
+                  - Kalau portrait/shorts pakai tinggi 16:9 dibalik jadi vertikal (paddingTop 177.78% atau max-h)
+                  - Kalau landscape pakai standar 16:9 (paddingTop 56.25%)
+                */}
+                <div
+                  className="relative w-full overflow-hidden rounded-xl bg-black"
+                  style={{
+                    paddingTop: isPortrait ? '177.78%' : '56.25%'
+                  }}
+                >
                   <iframe
-                    className="absolute top-0 left-0 w-full h-full"
+                    className="absolute top-0 left-0 w-full h-full border-0"
                     src={embedUrl}
                     title="Video Dokumentasi Baroqah Maju Jaya"
-                    frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   ></iframe>
