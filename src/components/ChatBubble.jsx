@@ -1,42 +1,122 @@
 import { useState, useRef, useEffect } from 'react'
 import { MessageCircle, X, Send } from 'lucide-react'
 
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+// PROMPT BARU: MODE SALES & CLOSING 🚀
+const SYSTEM_PROMPT = `Kamu adalah Asisten Sales representatif dari CV. BAROQAH MAJU JAYA, distributor ayam broiler, karkas, dan fillet terbaik di Palembang.
+Tujuan Utamamu: Menarik minat pelanggan, meyakinkan mereka tentang kualitas ayam, dan membuat mereka SEGERA memesan via WhatsApp.
+
+Informasi Perusahaan:
+- Operasional RPU: 05:00 WIB sampai 17:00 WIB.
+- Alamat: JL Panti Sosial Rt 24 Rw 09 Kel. Kebun Bunga, Sukarami, Palembang.
+- Kontak Admin Utama: 0853-7307-8847.
+
+Gaya Bahasa: Ramah, antusias, persuasif (meyakinkan), dan singkat (maksimal 3 kalimat). Gunakan sapaan "Kak" atau "Bapak/Ibu".
+
+Aturan Sales (WAJIB DIIKUTI):
+1. Selalu tonjolkan keunggulan: "Ayam kami potong dadakan tiap subuh, dijamin segar, timbangan pas, dan higienis."
+2. Jika ditanya harga: Jangan sebut nominal pasti. Jawab bahwa harga fluktuatif tapi BMJ selalu berani kasih HARGA SPESIAL/GROSIR terbaik hari ini.
+3. Teknik Closing: Di setiap akhir jawaban, pancing pelanggan untuk memesan. Contoh: "Berapa kilo kebutuhannya Kak hari ini? Yuk, langsung amankan stok dan harga spesialnya via WhatsApp Admin kami di 0853-7307-8847 sebelum kehabisan!"
+4. Jangan menjawab topik di luar ayam. Kalau di luar topik, arahkan kembali ke pemesanan ayam.`
+
 export default function ChatBubble() {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([
     {
-      sender: 'agent',
-      text: 'Halo! Selamat datang di CV Baroqah Maju Jaya. Ada yang bisa kami bantu terkait pemesanan ayam broiler skala besar atau kecil?',
+      role: 'model',
+      text: 'Halo! Selamat datang di CV Baroqah Maju Jaya. Cari ayam broiler segar atau fillet berkualitas? Kasih tau kami kebutuhannya, nanti kami kasih harga spesial hari ini!',
     },
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // FITUR BARU: Pembatas Jumlah Chat agar API tidak kena limit/bayar
+  const [chatCount, setChatCount] = useState(0)
+  const MAX_CHATS = 4; // Maksimal 4 kali interaksi per sesi
+
   const scrollRef = useRef(null)
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
-  }, [messages, open])
+  }, [messages, loading, open])
 
   const sendMessage = async () => {
     const q = input.trim()
     if (!q) return
+
     setInput('')
-    setMessages((prev) => [...prev, { sender: 'user', text: q }])
+    setMessages((prev) => [...prev, { role: 'user', text: q }])
+
+    // CEK LIMIT CHAT (Biaya & Token Saver)
+    if (chatCount >= MAX_CHATS) {
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'model',
+            text: 'Biar ngobrolnya makin enak dan bisa langsung nego harga, yuk langsung lanjut via WhatsApp aja Kak di 0853-7307-8847. Admin kami udah *standby* nunggu pesanan Kakak! 🚀'
+          },
+        ])
+      }, 500); // Jeda sedikit biar natural
+      return; // Berhenti di sini, tidak nembak ke API Google lagi
+    }
+
+    if (!apiKey) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'model', text: '🚨 ERROR: API Key belum dimasukkan di file .env.local.' },
+      ])
+      return;
+    }
+
     setLoading(true)
 
     try {
-      // Endpoint yang sama seperti versi Laravel kamu: POST /api/ai-assistant { query }
-      const res = await fetch('/api/ai-assistant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q }),
+      const currentChatHistory = messages.slice(1).map((msg) => ({
+        role: msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.text }],
+      }))
+
+      currentChatHistory.push({
+        role: 'user',
+        parts: [{ text: q }],
       })
-      const data = await res.json()
-      setMessages((prev) => [...prev, { sender: 'agent', text: data.reply }])
-    } catch {
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: SYSTEM_PROMPT }]
+          },
+          contents: currentChatHistory
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error?.message || 'Server Google menolak permintaan.');
+      }
+
+      let aiResponse = data.candidates[0].content.parts[0].text;
+
+      // Bersihkan bintang bold markdown dari output AI biar rapi di chat
+      aiResponse = aiResponse.replace(/\*\*/g, '');
+
+      setMessages((prev) => [...prev, { role: 'model', text: aiResponse }]);
+
+      // Tambah counter setiap kali AI berhasil balas
+      setChatCount(prev => prev + 1);
+
+    } catch (error) {
+      console.error("Fetch Error:", error)
       setMessages((prev) => [
         ...prev,
-        { sender: 'agent', text: 'Maaf, terjadi gangguan koneksi ke asisten AI. Silakan coba lagi.' },
+        { role: 'model', text: `🚨 Mohon maaf sistem sedang sibuk. Langsung chat WA Admin kami ya di 0853-7307-8847.` },
       ])
     } finally {
       setLoading(false)
@@ -57,7 +137,7 @@ export default function ChatBubble() {
         <div className="absolute bottom-16 right-0 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden">
           <div className="bg-brand-dark p-4 text-white flex items-center justify-between border-b border-brand-green">
             <div className="flex items-center gap-2">
-              <img src="/logo.png" className="w-7 h-7 object-contain bg-white rounded-lg p-0.5 shadow-sm" alt="" />
+              <img src="/logo.png" className="w-7 h-7 object-contain bg-white rounded-lg p-0.5 shadow-sm" alt="Logo BMJ" />
               <div>
                 <h4 className="font-bold text-sm">Layanan Pelanggan BMJ</h4>
                 <span className="text-xs text-brand-gold">Online | Siap Membantu</span>
@@ -72,18 +152,20 @@ export default function ChatBubble() {
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`p-3 rounded-xl max-w-[80%] shadow-sm ${
-                  m.sender === 'user'
-                    ? 'ml-auto bg-brand-green text-white'
-                    : 'mr-auto bg-white text-gray-800 border border-gray-100'
-                }`}
+                className={`p-3 rounded-xl max-w-[80%] shadow-sm ${m.role === 'user'
+                  ? 'ml-auto bg-brand-green text-white rounded-br-none'
+                  : 'mr-auto bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                  }`}
               >
-                <p>{m.text}</p>
+                <p className="whitespace-pre-wrap">{m.text}</p>
               </div>
             ))}
+
             {loading && (
-              <div className="mr-auto bg-white text-gray-400 border border-gray-100 p-3 rounded-xl text-xs">
-                Mengetik...
+              <div className="mr-auto bg-white border border-gray-100 p-4 rounded-xl rounded-bl-none shadow-sm flex items-center gap-1.5">
+                <span className="w-2 h-2 bg-brand-green rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                <span className="w-2 h-2 bg-brand-green rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                <span className="w-2 h-2 bg-brand-green rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
               </div>
             )}
           </div>
@@ -95,11 +177,13 @@ export default function ChatBubble() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
               placeholder="Ketik pertanyaan..."
-              className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-green"
+              className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-green disabled:bg-gray-100"
+              disabled={loading || chatCount >= MAX_CHATS}
             />
             <button
               onClick={sendMessage}
-              className="bg-brand-green text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#2e1c10] flex items-center justify-center"
+              disabled={loading || !input.trim() || chatCount >= MAX_CHATS}
+              className="bg-brand-green text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#2e1c10] flex items-center justify-center disabled:opacity-50 transition-colors"
             >
               <Send size={16} />
             </button>
