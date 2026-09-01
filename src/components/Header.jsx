@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 
+// PENTING: href di sini HARUS SAMA PERSIS dengan atribut id="..." di section tujuan
+// (lihat Hero.jsx, About.jsx, Products.jsx, VideoSection.jsx, Testimonials.jsx, Contact.jsx)
 const links = [
   { href: '#beranda', label: 'Beranda' },
   { href: '#tentang-kami', label: 'Tentang Kami' },
-  { href: '#katalog', label: 'Katalog & Harga' },
+  { href: '#products', label: 'Katalog & Harga' },
   { href: '#video-produksi', label: 'Video' },
+  { href: '#testimonial', label: 'Testimoni' },
   { href: '#kontak', label: 'Kontak' },
 ]
 

@@ -46,12 +46,23 @@ const SEO = ({ title, description, url }) => {
             <meta name="keywords" content="ayam broiler palembang, distributor ayam palembang, jual ayam karkas, ayam filet palembang, supplier ayam potong, rumah potong unggas palembang" />
             <link rel="canonical" href={siteUrl} />
 
+            <meta name="robots" content="index, follow" />
+            <meta httpEquiv="Content-Language" content="id" />
+
             {/* Open Graph / Facebook */}
             <meta property="og:type" content="website" />
             <meta property="og:url" content={siteUrl} />
             <meta property="og:title" content={title || defaultTitle} />
             <meta property="og:description" content={description || defaultDesc} />
             <meta property="og:image" content={`${siteUrl}/logo.png`} />
+            <meta property="og:locale" content="id_ID" />
+            <meta property="og:site_name" content="CV. Baroqah Maju Jaya" />
+
+            {/* Twitter Card */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content={title || defaultTitle} />
+            <meta name="twitter:description" content={description || defaultDesc} />
+            <meta name="twitter:image" content={`${siteUrl}/logo.png`} />
 
             {/* JSON-LD Schema Script */}
             <script type="application/ld+json">

@@ -42,7 +42,7 @@ export default function VideoSection() {
   if (isLoading || videos.length === 0) return null; // Sembunyikan section jika tidak ada video
 
   return (
-    <section className="py-20 bg-white border-y border-slate-100">
+    <section id="video-produksi" className="py-20 bg-white border-y border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-4">Profil & Dokumentasi</h2>

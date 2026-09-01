@@ -14,6 +14,8 @@ import Testimonials from './components/Testimonials';
 import Contact from './components/Contact';
 import Footer from './components/Footer';
 import ChatBubble from './components/ChatBubble';
+import SEO from './components/SEO';
+import VisitorTracker from './components/VisitorTracker';
 
 // Import Komponen Admin
 import AdminLogin from './components/AdminLogin';
@@ -23,6 +25,7 @@ import AdminVideo from './components/AdminVideo';
 import AdminArticles from './components/AdminArticles';
 import AdminSettings from './components/AdminSettings';
 import AdminSliders from './components/AdminSliders';
+import AdminVisitors from './components/AdminVisitors';
 
 // Komponen Pelindung Rute Admin
 const ProtectedRoute = ({ children }) => {
@@ -33,6 +36,8 @@ const ProtectedRoute = ({ children }) => {
 // Komponen Halaman Utama Web (Tampilan untuk pembeli)
 const MainWebsite = () => (
   <div className="bg-brand-bg text-[#1A1A1A] antialiased">
+    <SEO />
+    <VisitorTracker />
     <Header />
     <main className="min-h-screen pt-20">
       <Hero />
@@ -74,6 +79,7 @@ export default function App() {
             <Route path="sliders" element={<AdminSliders />} />
             <Route path="video" element={<AdminVideo />} />
             <Route path="articles" element={<AdminArticles />} />
+            <Route path="visitors" element={<AdminVisitors />} />
             <Route path="settings" element={<AdminSettings />} />
           </Route>
         </Routes>
